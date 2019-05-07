@@ -10,6 +10,7 @@ It works great for cordons on scenes in policing communities and can be used for
 - Object Spawner
 - Working scene lights.
 - AI Traffic Controller (Change the speed of traffic within a radius)
+- Configuration file for a personalised feel.
 
 ## Prerequisites (What you need):
 
@@ -22,7 +23,6 @@ It works great for cordons on scenes in policing communities and can be used for
 - Speed Zones will sometimes not slow down/stop every single vehicle.
 - Some objects will despawn if you walk away.
 - Must press key/input command twice initially to open the menu if mode set to 'IP'. This only happens on first activation.
-
 
 
 ## Installation:
