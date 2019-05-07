@@ -27,11 +27,11 @@ It works great for cordons on scenes in policing communities and can be used for
 
 ## Installation:
 
-Step 1. Download scenemenu.zip
-Step 2. Download NativeUI
-Step 3. Extract the contents of the scenemenu.zip and place it into the ‘resources’ folder.
-Step 4. Do the same for NativeUI
-Step 5. Include both ‘scenemenu’ and ‘NativeUI’ in your server.cfg
-Step 6. Configure the config.lua within scenemenu.
-Step 7. Restart your server.
-Step 8. Press your chosen key or type your command and enjoy!
+1. Download scenemenu.zip
+2. Download NativeUI
+3. Extract the contents of the scenemenu.zip and place it into the ‘resources’ folder.
+4. Do the same for NativeUI
+5. Include both ‘scenemenu’ and ‘NativeUI’ in your server.cfg
+6. Configure the config.lua within scenemenu.
+7. Restart your server.
+8. Press your chosen key or type your command and enjoy!
