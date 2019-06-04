@@ -137,10 +137,7 @@ function SpeedZoneSubMenu(menu)
           local streetName, crossing = GetStreetNameAtCoord(x, y, z)
           streetName = GetStreetNameFromHashKey(streetName)
 
-          local message = false
-          if Config.TrafficAlert then
-            local message = "^* ^1Traffic Announcement: ^r^*^7Police have ordered that traffic on ^2" .. streetName .. " ^7is to travel at a speed of ^2" .. speed .. "mph ^7due to an incident." 
-          end
+          local message = "^* ^1Traffic Announcement: ^r^*^7Police have ordered that traffic on ^2" .. streetName .. " ^7is to travel at a speed of ^2" .. speed .. "mph ^7due to an incident." 
           TriggerServerEvent('ZoneActivated', message, speed, radius, x, y, z)
   end
 
