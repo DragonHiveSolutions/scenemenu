@@ -1,6 +1,8 @@
 RegisterServerEvent('ZoneActivated')
 AddEventHandler('ZoneActivated', function(message, speed, radius, x, y, z)
-    TriggerClientEvent('chatMessage', -1, message)
+    if message then
+        TriggerClientEvent('chatMessage', -1, message)
+    end
     TriggerClientEvent('Zone', -1, speed, radius, x, y, z)
 end)
 
@@ -22,7 +24,6 @@ local identifiers = GetPlayerIdentifiers(source)
         for k,v in pairs(identifiers) do
             if string.sub(v, 0, 6) == "steam:" then
                 TriggerClientEvent('ReturnData', source, v)
-                print(v)
             end
         end
     end

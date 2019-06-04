@@ -4,7 +4,6 @@ resourceName = "Scene Menu ("..GetCurrentResourceName()..")" -- the resource nam
 
 function checkVersion(err,responseText, headers)
 	curVersion = LoadResourceFile(GetCurrentResourceName(), "version") -- make sure the "version" file actually exists in your resource root!
-
 	if curVersion ~= responseText and tonumber(curVersion) < tonumber(responseText) then
 		print("\n###############################")
 		print("\n"..resourceName.." is outdated, should be:\n"..responseText.."is:\n"..curVersion.."\nplease update it from https://github.com"..updatePath.."")
@@ -16,5 +15,5 @@ function checkVersion(err,responseText, headers)
 	end
 end
 
-PerformHttpRequest("https://raw.githubusercontent.com"..updatePath.."/master/version", checkVersion, "GET")
+PerformHttpRequest("https://raw.githubusercontent.com"..updatePath.."/master/scenemenu/version", checkVersion, "GET")
 end)

@@ -8,8 +8,6 @@ local speedzones = {}
 _menuPool = NativeUI.CreatePool()
 trafficmenu = NativeUI.CreateMenu("Scene Menu", "~b~Traffic Policing Helper (By Kye Jones)")
 _menuPool:Add(trafficmenu)
-_menuPool:MouseControlsEnabled(false)
-_menuPool:ControlDisablingEnabled(false)
 
 function ShowNotification(text)
   SetNotificationTextEntry("STRING")
@@ -19,143 +17,78 @@ end
 
 function ObjectsSubMenu(menu)
   local submenu = _menuPool:AddSubMenu(menu, "Objects Menu")
-  local objects = {
-    "Police Slow",
-    "Big Cone",
-    "Small Cone",
-    "Scene Lights",
-    "Gazebo",
-}
+
+  local objects = { }
+
+  for k,v in pairs(Config.Objects) do 
+    for k,v in pairs(v) do 
+        if k == "Displayname" then
+          table.insert(objects, v)
+        end
+    end
+  end
+
   local objectlist = NativeUI.CreateListItem("Object Spawning", objects, 1, "Press enter to select the object to spawn.")
   local deletebutton = NativeUI.CreateItem("Delete", "Delete nearest object.")
 
 
   submenu:AddItem(deletebutton)
   deletebutton.Activated = function(sender, item, index)
-    local theobject1 = 'prop_barrier_work05'
-    local object1 = GetHashKey(theobject1)
     local x, y, z = table.unpack(GetEntityCoords(PlayerPedId(), true))
-    if DoesObjectOfTypeExistAtCoords(x, y, z, 0.9, object1, true) then
-        local obj1 = GetClosestObjectOfType(x, y, z, 0.9, object1, false, false, false)
-        DeleteObject(obj1)
+
+    for k,v in pairs(Config.Objects) do 
+      
+      local hash = GetHashKey(v.Object)
+      if DoesObjectOfTypeExistAtCoords(x, y, z, 0.9, hash, true) then
+        local object = GetClosestObjectOfType(x, y, z, 0.9, hash, false, false, false)
+        DeleteObject(object)
+      end
+
     end
 
-    local theobject2 = 'prop_roadcone01a'
-    local object2 = GetHashKey(theobject2)
-    if DoesObjectOfTypeExistAtCoords(x, y, z, 0.9, object2, true) then
-        local obj2 = GetClosestObjectOfType(x, y, z, 0.9, object2, false, false, false)
-        DeleteObject(obj2)
-    end
-
-    local theobject4 = 'prop_gazebo_02'
-    local object4 = GetHashKey(theobject4)
-    if DoesObjectOfTypeExistAtCoords(x, y, z, 0.9, object4, true) then
-        local obj4 = GetClosestObjectOfType(x, y, z, 0.9, object4, false, false, false)
-        DeleteObject(obj4)
-    end
-
-    local theobject5 = 'prop_roadcone02b'
-    local object5 = GetHashKey(theobject5)
-    if DoesObjectOfTypeExistAtCoords(x, y, z, 0.9, object5, true) then
-        local obj5 = GetClosestObjectOfType(x, y, z, 0.9, object5, false, false, false)
-        DeleteObject(obj5)
-    end
-
-    local theobject3 = 'prop_worklight_03b'
-    local object3 = GetHashKey(theobject3)
-    if DoesObjectOfTypeExistAtCoords(x, y, z, 0.9, object3, true) then
-        local obj3 = GetClosestObjectOfType(x, y, z, 0.9, object3, false, false, false)
-        DeleteObject(obj3)
-    end
   end
+
 
   submenu:AddItem(objectlist)
   objectlist.OnListSelected = function(sender, item, index)
     local Player = GetPlayerPed(-1)
     local heading = GetEntityHeading(Player)
     local x, y, z = table.unpack(GetEntityCoords(Player, true))
-     local object = item:IndexToItem(index)
-        if object == objects[1] then
-        local objectname = 'prop_barrier_work05'
+    local object = item:IndexToItem(index)
+
+    for k,v in pairs(Config.Objects) do 
+        if v.Displayname == object then
+          print(v.Object)
+          local objectname = v.Object
           RequestModel(objectname)
           while not HasModelLoaded(objectname) do
             Citizen.Wait(1)
           end
-            local obj = CreateObject(GetHashKey(objectname), x, y, z, true, false);
-            PlaceObjectOnGroundProperly(obj)
-            SetEntityHeading(obj, heading)
-            FreezeEntityPosition(obj, true)
-        elseif object == objects[2] then
-            local objectname = 'prop_roadcone01a'
-            RequestModel(objectname)
-            while not HasModelLoaded(objectname) do
-              Citizen.Wait(1)
-            end
-              local obj = CreateObject(GetHashKey(objectname), x, y, z, true, false);
-              PlaceObjectOnGroundProperly(obj)
-              SetEntityHeading(obj, heading)
-              FreezeEntityPosition(obj, true)
-        elseif object == objects[4] then
-          local objectname = 'prop_worklight_03b'
-          RequestModel(objectname)
-          while not HasModelLoaded(objectname) do
-            Citizen.Wait(1)
-          end
-            local obj = CreateObject(GetHashKey(objectname), x, y, z, true, false);
-            PlaceObjectOnGroundProperly(obj)
-            SetEntityHeading(obj, heading)
-            FreezeEntityPosition(obj, true)
-        elseif object == objects[3] then
-            local objectname = 'prop_roadcone02b'
-            RequestModel(objectname)
-            while not HasModelLoaded(objectname) do
-              Citizen.Wait(1)
-            end
-              local obj = CreateObject(GetHashKey(objectname), x, y, z, true, false);
-              PlaceObjectOnGroundProperly(obj)
-              SetEntityHeading(obj, heading)
-              FreezeEntityPosition(obj, true)
-        elseif object == objects[5] then
-              local objectname = 'prop_gazebo_02'
-              RequestModel(objectname)
-              while not HasModelLoaded(objectname) do
-                Citizen.Wait(1)
-              end
-                local obj = CreateObject(GetHashKey(objectname), x, y, z, true, false);
-                PlaceObjectOnGroundProperly(obj)
-                SetEntityHeading(obj, heading)
-                FreezeEntityPosition(obj, true)
+          local obj = CreateObject(GetHashKey(objectname), x, y, z, true, false);
+          PlaceObjectOnGroundProperly(obj)
+          SetEntityHeading(obj, heading)
+          FreezeEntityPosition(obj, true)
         end
-end
+    end
+
+  end
+  
 
 end
 
 function SpeedZoneSubMenu(menu)
   local submenu = _menuPool:AddSubMenu(menu, "Speed Zone")
-  local radiusnum = {
-    "25",
-    "50",
-    "75",
-    "100",
-    "125",
-    "150",
-    "175",
-    "200",
-  }
+  local radiusnum = { }
 
-  local speednum = {
-    "0",
-    "5",
-    "10",
-    "15",
-    "20",
-    "25",
-    "30",
-    "35",
-    "40",
-    "45",
-    "50",
-  }
+  local speednum = { }
+
+  for k,v in pairs(Config.SpeedZone.Radius) do 
+    table.insert(radiusnum, v)
+  end
+
+  for k,v in pairs(Config.SpeedZone.Speed) do 
+    table.insert(speednum, v)
+  end
 
   local zonecreate = NativeUI.CreateItem("Create Zone", "Creates a zone with the radius and speed specified.")
   local zoneradius = NativeUI.CreateSliderItem("Radius", radiusnum, 1, false)
@@ -203,12 +136,12 @@ function SpeedZoneSubMenu(menu)
       
           local streetName, crossing = GetStreetNameAtCoord(x, y, z)
           streetName = GetStreetNameFromHashKey(streetName)
-      
-          local message = "^* ^1Traffic Announcement: ^r^*^7Police have ordered that traffic on ^2" .. streetName .. " ^7is to travel at a speed of ^2" .. speed .. "mph ^7due to an incident." 
-      
-          TriggerServerEvent('ZoneActivated', message, speed, radius, x, y, z)
-      
 
+          local message = false
+          if Config.TrafficAlert then
+            local message = "^* ^1Traffic Announcement: ^r^*^7Police have ordered that traffic on ^2" .. streetName .. " ^7is to travel at a speed of ^2" .. speed .. "mph ^7due to an incident." 
+          end
+          TriggerServerEvent('ZoneActivated', message, speed, radius, x, y, z)
   end
 
 end
@@ -225,44 +158,43 @@ end)
 ObjectsSubMenu(trafficmenu)
 SpeedZoneSubMenu(trafficmenu)
 
-if ActivationMode == "Key" then
+if Config.ActivationMode == "Key" then
 Citizen.CreateThread(function()
   while true do
       Citizen.Wait(0)
       _menuPool:ProcessMenus()
-      if IsControlJustPressed(0, ActivationKey) and GetLastInputMethod( 0 ) then
+      if IsControlJustPressed(0, Config.ActivationKey) and GetLastInputMethod( 0 ) then
 
-        if UsageMode == "Ped" then
+        if Config.UsageMode == "Ped" then
 
           pmodel = GetEntityModel(PlayerPedId())
-          if inArrayPed(pmodel, WhitelistedPeds) then
+          if inArrayPed(pmodel, Config.WhitelistedPeds) then
             trafficmenu:Visible(not trafficmenu:Visible())
           else 
             print("You are not in the correct ped to use this menu.")
           end
 
-        elseif UsageMode == "IP" then
+        elseif Config.UsageMode == "IP" then
 
           TriggerServerEvent("GetData", "IP")
           Wait(100)
-          if inArray(GlobalData, WhitelistedIPs) then
+          if inArray(GlobalData, Config.WhitelistedIPs) then
             trafficmenu:Visible(not trafficmenu:Visible())
           else 
             print("You are not whitelisted to use this.")
           end
 
-        elseif UsageMode == "Steam" then
+        elseif Config.UsageMode == "Steam" then
 
           TriggerServerEvent("GetData", "Steam")
           Wait(100)
-          print(GlobalData)
-          if inArraySteam(GlobalData, WhitelistedSteam) then
+          if inArraySteam(GlobalData, Config.WhitelistedSteam) then
             trafficmenu:Visible(not trafficmenu:Visible())
           else 
             print("You are not whitelisted to use this.")
           end
 
-        elseif UsageMode == "Everyone" then
+        elseif Config.UsageMode == "Everyone" then
             trafficmenu:Visible(not trafficmenu:Visible())
         end
 
@@ -270,7 +202,7 @@ Citizen.CreateThread(function()
   end
 end)
 
-elseif ActivationMode == "Command" then
+elseif Config.ActivationMode == "Command" then
 
 Citizen.CreateThread(function()
   while true do
@@ -279,8 +211,39 @@ Citizen.CreateThread(function()
   end
 end)
 
-RegisterCommand(ActivationCommand, function(source, args, rawCommand)
-    trafficmenu:Visible(not trafficmenu:Visible())
+RegisterCommand(Config.ActivationCommand, function(source, args, rawCommand)
+    if Config.UsageMode == "Ped" then
+
+    pmodel = GetEntityModel(PlayerPedId())
+    if inArrayPed(pmodel, Config.WhitelistedPeds) then
+      trafficmenu:Visible(not trafficmenu:Visible())
+    else 
+      print("You are not in the correct ped to use this menu.")
+    end
+
+  elseif Config.UsageMode == "IP" then
+
+    TriggerServerEvent("GetData", "IP")
+    Wait(100)
+    if inArray(GlobalData, Config.WhitelistedIPs) then
+      trafficmenu:Visible(not trafficmenu:Visible())
+    else 
+      print("You are not whitelisted to use this.")
+    end
+
+  elseif Config.UsageMode == "Steam" then
+
+    TriggerServerEvent("GetData", "Steam")
+    Wait(100)
+    if inArraySteam(GlobalData, Config.WhitelistedSteam) then
+      trafficmenu:Visible(not trafficmenu:Visible())
+    else 
+      print("You are not whitelisted to use this.")
+    end
+
+  elseif Config.UsageMode == "Everyone" then
+      trafficmenu:Visible(not trafficmenu:Visible())
+  end
 end, false)
 
 end
@@ -367,3 +330,6 @@ function getSteamId(steamId)
   end
   return steamId
 end
+
+_menuPool:MouseControlsEnabled(false)
+_menuPool:ControlDisablingEnabled(false)
