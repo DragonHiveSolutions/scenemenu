@@ -1,5 +1,5 @@
 Citizen.CreateThread( function()
-updatePath = "/kwinky1/scenemenu" -- your git user/repo path
+updatePath = "/KyeJones/scenemenu" -- your git user/repo path
 resourceName = "Scene Menu ("..GetCurrentResourceName()..")" -- the resource name
 
 function checkVersion(err,responseText, headers)
