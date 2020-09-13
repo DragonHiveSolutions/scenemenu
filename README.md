@@ -27,3 +27,5 @@ With massive configuration support, you can easily add objects and manage who ca
 4. Configure the config.lua within scenemenu.
 5. Restart your server.
 6. Press your chosen key or type your command and enjoy!
+
+![](https://cdn.discordapp.com/attachments/560074121292283904/754729286060998676/218_20200913164337_1.png)
