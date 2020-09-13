@@ -1,7 +1,7 @@
 RegisterServerEvent('ZoneActivated')
 AddEventHandler('ZoneActivated', function(message, speed, radius, x, y, z)
-    if message then
-        TriggerClientEvent('chatMessage', -1, message)
+    if message and TrafficAlert then
+        TriggerClientEvent('chat:addMessage', -1, { color = { 255, 255, 255 }, multiline = false, args = {"Scene Menu", message} })
     end
     TriggerClientEvent('Zone', -1, speed, radius, x, y, z)
 end)

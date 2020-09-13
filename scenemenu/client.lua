@@ -1,149 +1,257 @@
---AddSpeedZoneForCoord(float x, float y, float z, float radius, float speed, BOOL p5);
 
 local speedZoneActive = false
 local blip
 local speedZone
 local speedzones = {}
-
-_menuPool = NativeUI.CreatePool()
-trafficmenu = NativeUI.CreateMenu("Scene Menu", "~b~Traffic Policing Helper (By Kye Jones)")
-_menuPool:Add(trafficmenu)
-
-function ShowNotification(text)
-  SetNotificationTextEntry("STRING")
-  AddTextComponentString(text)
-  DrawNotification(false, false)
-end
-
-function ObjectsSubMenu(menu)
-  local submenu = _menuPool:AddSubMenu(menu, "Objects Menu")
-
-  local objects = { }
-
-  for k,v in pairs(Config.Objects) do 
-    for k,v in pairs(v) do 
-        if k == "Displayname" then
-          table.insert(objects, v)
-        end
-    end
-  end
-
-  local objectlist = NativeUI.CreateListItem("Object Spawning", objects, 1, "Press enter to select the object to spawn.")
-  local deletebutton = NativeUI.CreateItem("Delete", "Delete nearest object.")
-
-
-  submenu:AddItem(deletebutton)
-  deletebutton.Activated = function(sender, item, index)
-    local x, y, z = table.unpack(GetEntityCoords(PlayerPedId(), true))
-
-    for k,v in pairs(Config.Objects) do 
-      
-      local hash = GetHashKey(v.Object)
-      if DoesObjectOfTypeExistAtCoords(x, y, z, 0.9, hash, true) then
-        local object = GetClosestObjectOfType(x, y, z, 0.9, hash, false, false, false)
-        DeleteObject(object)
-      end
-
-    end
-
-  end
-
-
-  submenu:AddItem(objectlist)
-  objectlist.OnListSelected = function(sender, item, index)
-    local Player = GetPlayerPed(-1)
-    local heading = GetEntityHeading(Player)
-    local x, y, z = table.unpack(GetEntityCoords(Player, true))
-    local object = item:IndexToItem(index)
-
-    for k,v in pairs(Config.Objects) do 
-        if v.Displayname == object then
-          print(v.Object)
-          local objectname = v.Object
-          RequestModel(objectname)
-          while not HasModelLoaded(objectname) do
-            Citizen.Wait(1)
-          end
-          local obj = CreateObject(GetHashKey(objectname), x, y, z, true, false);
-          PlaceObjectOnGroundProperly(obj)
-          SetEntityHeading(obj, heading)
-          FreezeEntityPosition(obj, true)
-        end
-    end
-
-  end
-  
-
-end
-
-function SpeedZoneSubMenu(menu)
-  local submenu = _menuPool:AddSubMenu(menu, "Speed Zone")
-  local radiusnum = { }
-
-  local speednum = { }
-
-  for k,v in pairs(Config.SpeedZone.Radius) do 
-    table.insert(radiusnum, v)
-  end
-
-  for k,v in pairs(Config.SpeedZone.Speed) do 
-    table.insert(speednum, v)
-  end
-
-  local zonecreate = NativeUI.CreateItem("Create Zone", "Creates a zone with the radius and speed specified.")
-  local zoneradius = NativeUI.CreateSliderItem("Radius", radiusnum, 1, false)
-  local zonespeed = NativeUI.CreateListItem("Speed", speednum, 1)
-  local zonedelete = NativeUI.CreateItem("Delete Zone", "Deletes your placed zone.")
-
-  submenu:AddItem(zoneradius)
-  submenu:AddItem(zonespeed)
-  submenu:AddItem(zonecreate)
-  submenu:AddItem(zonedelete)
-
-  zonecreate:SetRightBadge(BadgeStyle.Tick)
-
-  submenu.OnSliderChange = function(sender, item, index)
-        radius = item:IndexToItem(index)
-        ShowNotification("Changing radius to ~r~" .. radius)
-  end
-
-  submenu.OnListChange = function(sender, item, index)
-    speed = item:IndexToItem(index)
-    ShowNotification("Changing speed to ~r~" .. speed)
-  end
-
-  zonedelete.Activated = function(sender, item, index)
-      TriggerServerEvent('Disable')
-      ShowNotification("Disabled zones.")
-  end
-
-  zonecreate.Activated = function(sender, item, index)
-
-      if not speed then
-        speed = 0
-      end
-
-      if not radius then
-        ShowNotification("~r~Please change the radius!")
-        return
-      end
-
-          speedZoneActive = true
-          ShowNotification("Created Speed Zone.")
-          local x, y, z = table.unpack(GetEntityCoords(GetPlayerPed(-1)))
-          radius = radius + 0.0
-          speed = speed + 0.0
-      
-          local streetName, crossing = GetStreetNameAtCoord(x, y, z)
-          streetName = GetStreetNameFromHashKey(streetName)
-
-          local message = "^* ^1Traffic Announcement: ^r^*^7Police have ordered that traffic on ^2" .. streetName .. " ^7is to travel at a speed of ^2" .. speed .. "mph ^7due to an incident." 
-          TriggerServerEvent('ZoneActivated', message, speed, radius, x, y, z)
-  end
-
-end
-
 local GlobalData = ""
+
+local currentObjectIndex = 1
+local selectedObjectIndex = 1
+local currentRadIndex = 1
+local selectedRadIndex = 1
+local currentSpeedIndex = 1
+local selectedSpeedIndex = 1
+
+Citizen.CreateThread(function()
+
+  --[[ Initialize Menus / Submenus ]]--
+  WarMenu.CreateMenu('mainmenu', 'Scene Menu')
+  WarMenu.SetSubTitle('mainmenu', 'By KJ Studios')
+  WarMenu.SetTitleBackgroundColor('mainmenu', 60, 137, 214, 255)
+  WarMenu.SetMenuTextColor('mainmenu', 60, 137, 214, 255)
+  -- Object Spawn Menu
+  WarMenu.CreateSubMenu('objectsub', 'mainmenu', 'Objects Menu')
+  WarMenu.SetSubTitle('objectsub', 'By KJ Studios')
+  WarMenu.SetTitleBackgroundColor('objectsub', 60, 137, 214, 255)
+  WarMenu.SetMenuTextColor('objectsub', 60, 137, 214, 255)
+  -- Speed Zone Menu
+  WarMenu.CreateSubMenu('speedzones', 'mainmenu', 'Speed Zone')
+  WarMenu.SetSubTitle('speedzones', 'By KJ Studios')
+  WarMenu.SetTitleBackgroundColor('speedzones', 60, 137, 214, 255)
+  WarMenu.SetMenuTextColor('speedzones', 60, 137, 214, 255)
+
+
+------------------------
+--[[ Menu Building ]]--
+------------------------
+
+  while true do
+
+    if WarMenu.IsMenuOpened('mainmenu') then
+
+      if WarMenu.MenuButton('Object Menu', 'objectsub') then
+      elseif WarMenu.MenuButton('Speed Zone', 'speedzones') then
+      end
+
+      WarMenu.Display()
+    elseif WarMenu.IsMenuOpened('objectsub') then
+
+
+      local objects = { }
+
+      for k,v in pairs(Config.Objects) do 
+        for k,v in pairs(v) do 
+            if k == "Displayname" then
+              table.insert(objects, v)
+            end
+        end
+      end
+
+      if WarMenu.ComboBox('Object', objects, currentObjectIndex, selectedObjectIndex, function(currentIndex, selectedIndex)
+          currentObjectIndex = currentIndex
+          selectedObjectIndex = selectedIndex
+        end) then
+          
+          local Player = GetPlayerPed(-1)
+          local heading = GetEntityHeading(Player)
+          local x, y, z = table.unpack(GetEntityCoords(Player, true))
+          local object = objects[selectedObjectIndex]
+
+          for k,v in pairs(Config.Objects) do 
+              if v.Displayname == object then
+                print(v.Object)
+                local objectname = v.Object
+                RequestModel(objectname)
+                while not HasModelLoaded(objectname) do
+                  Citizen.Wait(1)
+                end
+                local obj = CreateObject(GetHashKey(objectname), x, y, z, true, false);
+                PlaceObjectOnGroundProperly(obj)
+                SetEntityHeading(obj, heading)
+                FreezeEntityPosition(obj, true)
+              end
+          end
+
+
+      elseif WarMenu.Button('Delete', 'Nearest') then
+
+        local x, y, z = table.unpack(GetEntityCoords(PlayerPedId(), true))
+
+        for k,v in pairs(Config.Objects) do 
+        
+          local hash = GetHashKey(v.Object)
+          if DoesObjectOfTypeExistAtCoords(x, y, z, 0.9, hash, true) then
+            local object = GetClosestObjectOfType(x, y, z, 0.9, hash, false, false, false)
+            DeleteObject(object)
+          end
+  
+        end
+
+      end
+
+
+      WarMenu.Display()
+    elseif WarMenu.IsMenuOpened('speedzones') then
+
+      local radiusnum = { }
+      local speednum = { }
+      local speed = 0
+      local radius = 25
+
+      for k,v in pairs(Config.SpeedZone.Radius) do 
+        table.insert(radiusnum, v)
+      end
+    
+      for k,v in pairs(Config.SpeedZone.Speed) do 
+        table.insert(speednum, v)
+      end
+
+      if WarMenu.ComboBox('Radius (Press Enter)', radiusnum, currentRadIndex, selectedRadIndex, function(currentIndex, selectedIndex)
+        currentRadIndex = currentIndex
+        selectedRadIndex = selectedIndex
+        radius = radiusnum[currentIndex]
+
+      end) then
+
+      elseif WarMenu.ComboBox('Speed (Press Enter)', speednum, currentSpeedIndex, selectedSpeedIndex, function(currentIndex, selectedIndex)
+        currentSpeedIndex = currentIndex
+        selectedSpeedIndex = selectedIndex
+
+        speed = speednum[currentIndex]
+      end) then
+
+      elseif WarMenu.Button('Create Zone') then
+
+        print('Button Pressed')
+        if not speed then
+          speed = 0
+          print('Speed not set')
+        end
+  
+        if not radius then
+          radius = 25
+        end
+  
+        speedZoneActive = true
+        ShowNotification("Created Speed Zone.")
+        local x, y, z = table.unpack(GetEntityCoords(GetPlayerPed(-1)))
+        radius = radius + 0.0
+        speed = speed + 0.0
+        
+        local streetName, crossing = GetStreetNameAtCoord(x, y, z)
+        streetName = GetStreetNameFromHashKey(streetName)
+  
+        local message = "^* ^1Traffic Announcement: ^r^*^7Police have ordered that traffic on ^2" .. streetName .. " ^7is to travel at a speed of ^2" .. speed .. "mph ^7due to an incident." 
+        TriggerServerEvent('ZoneActivated', message, speed, radius, x, y, z)
+
+      elseif WarMenu.Button('Delete Zone') then
+
+        TriggerServerEvent('Disable')
+        ShowNotification("Disabled zones.")
+
+      end
+
+      WarMenu.Display()
+    end
+    
+    
+    --[[ Menu Opening Functions ]]--
+
+    if Config.ActivationMode == "Key" then
+    
+      if IsControlJustReleased(0, Config.ActivationKey) and GetLastInputMethod( 0 ) then
+
+        if Config.UsageMode == "Ped" then
+
+          pmodel = GetEntityModel(PlayerPedId())
+          if inArrayPed(pmodel, Config.WhitelistedPeds) then
+            WarMenu.OpenMenu('mainmenu')
+          else 
+            ShowNotification("^1You are not in the correct ped to use this.")
+          end
+        elseif Config.UsageMode == "IP" then
+
+          TriggerServerEvent("GetData", "IP")
+          Wait(100)
+          if inArray(GlobalData, Config.WhitelistedIPs) then
+            WarMenu.OpenMenu('mainmenu')
+          else 
+            ShowNotification("^1You are not whitelisted to use this.")
+          end
+        elseif Config.UsageMode == "Steam" then
+
+          TriggerServerEvent("GetData", "Steam")
+          Wait(100)
+          if inArraySteam(GlobalData, Config.WhitelistedSteam) then
+            WarMenu.OpenMenu('mainmenu')
+          else 
+            ShowNotification("^1You are not whitelisted to use this.")
+          end
+
+        elseif Config.UsageMode == "Everyone" then
+          WarMenu.OpenMenu('mainmenu')
+        end
+
+      end
+
+    elseif Config.ActivationMode == "Command" then
+
+      RegisterCommand(Config.ActivationCommand, function(source, args, rawCommand)
+
+        if Config.UsageMode == "Ped" then
+
+          pmodel = GetEntityModel(PlayerPedId())
+          if inArrayPed(pmodel, Config.WhitelistedPeds) then
+            WarMenu.OpenMenu('mainmenu')
+          else 
+            ShowNotification("^1You are not in the correct ped to use this.")
+          end
+        elseif Config.UsageMode == "IP" then
+
+          TriggerServerEvent("GetData", "IP")
+          Wait(100)
+          if inArray(GlobalData, Config.WhitelistedIPs) then
+            WarMenu.OpenMenu('mainmenu')
+          else 
+            ShowNotification("^1You are not whitelisted to use this.")
+          end
+        elseif Config.UsageMode == "Steam" then
+
+          TriggerServerEvent("GetData", "Steam")
+          Wait(100)
+          if inArraySteam(GlobalData, Config.WhitelistedSteam) then
+            WarMenu.OpenMenu('mainmenu')
+          else 
+            ShowNotification("^1You are not whitelisted to use this.")
+          end
+
+        elseif Config.UsageMode == "Everyone" then
+          WarMenu.OpenMenu('mainmenu')
+        end
+
+      end,false)
+
+    end
+
+    Citizen.Wait(0)
+  end
+
+end)
+
+
+------------------------
+--[[ Network Events ]]--
+------------------------
 
 RegisterNetEvent('ReturnData')
 AddEventHandler('ReturnData', function(data)
@@ -151,100 +259,6 @@ AddEventHandler('ReturnData', function(data)
   GlobalData = data
 
 end)
-
-ObjectsSubMenu(trafficmenu)
-SpeedZoneSubMenu(trafficmenu)
-
-if Config.ActivationMode == "Key" then
-Citizen.CreateThread(function()
-  while true do
-      Citizen.Wait(0)
-      _menuPool:ProcessMenus()
-      if IsControlJustPressed(0, Config.ActivationKey) and GetLastInputMethod( 0 ) then
-
-        if Config.UsageMode == "Ped" then
-
-          pmodel = GetEntityModel(PlayerPedId())
-          if inArrayPed(pmodel, Config.WhitelistedPeds) then
-            trafficmenu:Visible(not trafficmenu:Visible())
-          else 
-            print("You are not in the correct ped to use this menu.")
-          end
-
-        elseif Config.UsageMode == "IP" then
-
-          TriggerServerEvent("GetData", "IP")
-          Wait(100)
-          if inArray(GlobalData, Config.WhitelistedIPs) then
-            trafficmenu:Visible(not trafficmenu:Visible())
-          else 
-            print("You are not whitelisted to use this.")
-          end
-
-        elseif Config.UsageMode == "Steam" then
-
-          TriggerServerEvent("GetData", "Steam")
-          Wait(100)
-          if inArraySteam(GlobalData, Config.WhitelistedSteam) then
-            trafficmenu:Visible(not trafficmenu:Visible())
-          else 
-            print("You are not whitelisted to use this.")
-          end
-
-        elseif Config.UsageMode == "Everyone" then
-            trafficmenu:Visible(not trafficmenu:Visible())
-        end
-
-      end
-  end
-end)
-
-elseif Config.ActivationMode == "Command" then
-
-Citizen.CreateThread(function()
-  while true do
-      Citizen.Wait(0)
-      _menuPool:ProcessMenus()
-  end
-end)
-
-RegisterCommand(Config.ActivationCommand, function(source, args, rawCommand)
-    if Config.UsageMode == "Ped" then
-
-    pmodel = GetEntityModel(PlayerPedId())
-    if inArrayPed(pmodel, Config.WhitelistedPeds) then
-      trafficmenu:Visible(not trafficmenu:Visible())
-    else 
-      print("You are not in the correct ped to use this menu.")
-    end
-
-  elseif Config.UsageMode == "IP" then
-
-    TriggerServerEvent("GetData", "IP")
-    Wait(100)
-    if inArray(GlobalData, Config.WhitelistedIPs) then
-      trafficmenu:Visible(not trafficmenu:Visible())
-    else 
-      print("You are not whitelisted to use this.")
-    end
-
-  elseif Config.UsageMode == "Steam" then
-
-    TriggerServerEvent("GetData", "Steam")
-    Wait(100)
-    if inArraySteam(GlobalData, Config.WhitelistedSteam) then
-      trafficmenu:Visible(not trafficmenu:Visible())
-    else 
-      print("You are not whitelisted to use this.")
-    end
-
-  elseif Config.UsageMode == "Everyone" then
-      trafficmenu:Visible(not trafficmenu:Visible())
-  end
-end, false)
-
-end
-
 
 RegisterNetEvent('Zone')
 AddEventHandler('Zone', function(speed, radius, x, y, z)
@@ -282,6 +296,11 @@ AddEventHandler('RemoveBlip', function()
 
 end)
 
+
+--------------------------
+--[[ Useful Functions ]]--
+--------------------------
+
 function inArrayPed(value, array)
   for _,v in pairs(array) do
     if GetHashKey(v) == value then
@@ -300,18 +319,16 @@ function inArray(value, array)
   return false
 end
 
-  -- Returns TRUE if value is in array, FALSE otherwise
-  function inArraySteam(value, array)
-    for _,v in pairs(array) do
-      v = getSteamId(v)
-      if v == value then
-        return true
-      end
+function inArraySteam(value, array)
+  for _,v in pairs(array) do
+    v = getSteamId(v)
+    if v == value then
+      return true
     end
-    return false
   end
+  return false
+end
 
--- Returns TRUE if steamId start with "steam:", FALSE otherwise
 function isNativeSteamId(steamId)
   if string.sub(steamId, 0, 6) == "steam:" then
     return true
@@ -328,5 +345,8 @@ function getSteamId(steamId)
   return steamId
 end
 
-_menuPool:MouseControlsEnabled(false)
-_menuPool:ControlDisablingEnabled(false)
+function ShowNotification(text)
+  SetNotificationTextEntry("STRING")
+  AddTextComponentString(text)
+  DrawNotification(false, false)
+end
